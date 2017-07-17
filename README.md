@@ -1,7 +1,11 @@
 # Dapp
 
+[![Docs](https://img.shields.io/badge/view%20docs-readthedocs-blue.svg?style=flat-square)](https://dapp.readthedocs.io/en/latest/)
+[![Chat](https://img.shields.io/badge/community-chat-blue.svg?style=flat-square)](https://dapphub.chat)
+
 ## Installation
 
+Please make sure you have [`solc` installed in your CLI](https://solidity.readthedocs.io/en/develop/installing-solidity.html)
 ```
    make link                  install dapp(1) into /usr/local
    make uninstall             uninstall dapp(1) from /usr/local

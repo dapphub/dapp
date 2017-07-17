@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
-set -o noclobber
+set -e -o noclobber
 [[ -e .git ]] && dapp --sanity "$0"
 
-create() { cat >"$1"; (set -x; git add "$1"); }
+solc_version=$(solc --version)
+solc_version=$(<<<"$solc_version" grep ^Version:)
+solc_version=${solc_version#* }
+solc_version=${solc_version%%+*}
+
+create() { [[ -e $1 ]] || { cat >"$1"; (set -x; git add "$1"); }; }
 insert() {
+  touch "$1"
   while read -r line; do
     grep -qF "$line" "$1" || printf >>"$1" '%s\n' "$line"
   done
@@ -18,14 +24,18 @@ insert .gitignore <<.
 .
 
 name=$(basename "$(pwd)")
-words=$(sed 's/[^a-z0-9]\+/\n/ig' <<<"$name")
-while read -r word; do type+=${word^}; done <<<"$words"
+name=$(<<<"$name" tr A-Z a-z)
+nouns=(${name//[^a-z]/ })
+noun=${nouns[$((${#nouns[@]} - 1))]}
+type=$(<<<"$name" perl -pe 's/(\w+)/\u$1/g')
+type=$(<<<"$type" tr -cd a-zA-Z0-9)
+type=${1-$type}
 
 create Makefile <<.
-all:; dapp build
-clean:; dapp clean
-test:; dapp test
-deploy:; dapp create $type
+all    :; dapp build
+clean  :; dapp clean
+test   :; dapp test
+deploy :; dapp create $type
 .
 
 create Dappfile <<.
@@ -38,31 +48,37 @@ license         Apache-2.0
 .
 
 create "src/$type.sol" <<.
-pragma solidity ^0.4.8;
+pragma solidity ^${solc_version};
 
 contract $type {
 }
 .
 
 create "src/$type.t.sol" <<.
-pragma solidity ^0.4.8;
+pragma solidity ^${solc_version};
 
 import "ds-test/test.sol";
 
 import "./$type.sol";
 
 contract ${type}Test is DSTest {
-    function test_basic_sanity() {
-        assert(true);
+    $type $noun;
+
+    function setUp() {
+        $noun = new $type();
     }
 
     function testFail_basic_sanity() {
         assert(false);
     }
+
+    function test_basic_sanity() {
+        assert(true);
+    }
 }
 .
 
 git add -A
-(set -x; git commit -m "dapp init $name")
+(set -x; git commit -m "dapp init $type")
 (set -x; dapp install ds-test)
 (set -x; make test)
