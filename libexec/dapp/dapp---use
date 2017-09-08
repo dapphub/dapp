@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -e
+
+function usage() {
+  echo >&2 "Usage: dapp --use <spec> <subcommand>..."
+  echo >&2 "Example:"
+  echo >&2
+  echo >&2 "  $ dapp --use solc:0.4.11 test"
+  echo >&2
+  exit 1
+}
+
+[[ "$#" > 0 ]] || usage
+
+function have() { command -v "$1" >/dev/null 2>&1 ; }
+if ! have nix-shell; then exec dapp nix-setup; fi
+
+export NIX_PATH=dapphub=$HOME/.nix-defexpr/channels/dapphub:$NIX_PATH
+BINARY_CACHE=$(cat ~/.nix-defexpr/channels/binary-caches/dapphub)
+
+shopt -s extglob
+case $1 in
+  solc:[0-9].+([0-9.]))
+    version=${1#solc:}
+    version=${version//./_}
+    override+=" solc = solc-versions.solc_$version;"
+    ;;
+  *)
+    echo >&2 "${0##*/}: unrecognized package spec: $1"
+    exit 1
+esac
+shift
+
+[[ "$#" > 0 ]] || usage
+
+nix-shell \
+ --option binary-caches "$BINARY_CACHE" \
+  -p "with import <dapphub> {}; dapp.override {$override }" \
+  --run "dapp $*"

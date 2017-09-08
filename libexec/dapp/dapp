@@ -4,6 +4,28 @@ export DAPP_SRC=${DAPP_SRC-src}
 export DAPP_LIB=${DAPP_LIB-lib}
 export DAPP_OUT=${DAPP_OUT-out}
 
+function have() { command -v "$1" >/dev/null 2>&1 ; }
+
+for dep in bc curl git node solc ethabi ethrun seth jshon; do
+  if ! have $dep; then missing+=($dep); fi
+done
+
+if [ ${#missing[@]} -gt 0 ]; then
+  echo >&2 "${0##*/}: missing dependencies"
+  echo >&2
+  cat <<-EOF
+If you want to install missing dependencies by hand,
+then answer no to the following and install the following:
+
+    ${missing[@]}
+
+But we recommend that you let Dapp manage its own tools,
+and answer yes to the following.
+EOF
+
+  exec "${0##*/}-nix-setup"
+fi
+
 version=$(solc --version)
 if grep -q 0.4.9 <<<"$version"; then
   echo >&2 "${0##*/}: error: solc 0.4.9 not supported"

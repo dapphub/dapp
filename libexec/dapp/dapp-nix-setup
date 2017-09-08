@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+set -e
+
+function verify() {
+  read -e -p "$1 [y/n] " answer
+  [[ $answer == y ]] || [[ $answer == yes ]]
+}
+
+if ! command -v nix-env >/dev/null 2>&1; then
+  echo >&2 
+ cat >&2 <<"EOF"
+Dapp uses the Nix package manager to manage external tools.
+
+Nix is a very useful meta-tool.  All of its tools will be
+self-contained in the /nix directory in a robust way.
+
+We can launch the automatic Nix installer that works on both Linux and
+OS X.
+
+If you want to educate yourself first, please visit the Nix website
+and become convinced of its wholesome and beneficial nature.
+
+                   https://nixos.org/nix
+
+EOF
+  if verify "Install Nix?"; then
+    if ! command -v curl >/dev/null 2>&1; then
+      echo >&2
+      echo >&2 "Error: please first install curl."
+      exit 1
+    fi
+    if ! command -v bzcat >/dev/null 2>&1; then
+      echo >&2
+      echo >&2 "Error: please first install bzip2."
+      exit 1
+    fi
+    
+    echo >&2
+    curl https://nixos.org/nix/install | bash
+
+    echo >&2 "${0##*/}: Congratulations -- Nix is installed."
+    if verify "Setup shell profile?"; then
+      ( set +x
+        echo ". ~/.nix-profile/etc/profile.d/nix.sh" >> ~/.profile
+      )
+    fi
+
+    . ~/.nix-profile/etc/profile.d/nix.sh
+
+    echo >&2 "${0##*/}: Configuring the DappHub channel..."
+    nix-channel --add https://nix.dapphub.com/pkgs/dapphub
+    nix-channel --update
+    
+    echo >&2 "${0##*/}: Installing dapp via Nix..."
+    nix-env -iA dapphub.dapp
+
+    echo >&2 "${0##*/}: Excellent!  Log out or run the following:"
+    echo >&2
+    echo >&2 "    source ~/.nix-profile/etc/profile.d/nix.sh"
+    echo >&2
+    echo >&2 "and you will be fully set up to develop dapps."
+  fi
+fi
