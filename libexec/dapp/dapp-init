@@ -23,6 +23,10 @@ insert .gitignore <<.
 /out
 .
 
+create .gitattributes <<.
+*.sol linguist-language=Solidity
+.
+
 name=$(basename "$(pwd)")
 name=$(<<<"$name" tr '[:upper:]' '[:lower:]')
 nouns=(${name//[^a-z]/ })
