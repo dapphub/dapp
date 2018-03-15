@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -e
+
+OPTS="dapp key [<options>] <args>...
+dapp key --help
+--
+keystore=path      save path (default: ~/.ethereum/keystore)
+password=file      if not given, will prompt for password
+"
+
+eval "$(
+  git rev-parse --parseopt -- "$@" <<<"$OPTS" || echo exit $?
+)"
+
+while [[ $1 ]]; do
+  case $1 in
+    --)          shift; break;;
+    --keystore)  shift; ETH_KEYSTORE=$1;;
+    --password)  shift; ETH_PASSWORD=$1;;
+    *) printf "${0##*/}: internal error: %q\\n" "$1"; exit 1
+  esac; shift
+done
+
+[[ $ETH_KEYSTORE ]] && args+=(--keystore "$ETH_KEYSTORE")
+[[ $ETH_PASSWORD ]] && args+=(--password "$ETH_PASSWORD")
+
+geth account new "${args[@]}"
